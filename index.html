@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HAR Modifier</title>
+  </head>
+  <body>
+    <input type="file" id="fileInput" />
+    <script type="module">
+      import init, { process_file } from './pkg/har-strip.js'
+
+      init().then(() => {
+        document
+          .getElementById('fileInput')
+          .addEventListener('change', (event) => {
+            const file = event.target.files[0]
+            if (file) {
+              process_file(file)
+              console.log({ file, ppp: process_file(file) })
+            }
+          })
+      })
+    </script>
+  </body>
+</html>
