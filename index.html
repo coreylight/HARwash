@@ -1,24 +1,112 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <title>HAR Modifier</title>
+    <title>HAR Cleaner</title>
   </head>
+  <style>
+    body {
+      color: black;
+      font-family: sans-serif;
+    }
+    label {
+      border: 2px solid #ccc;
+      display: block;
+      height: 60vh;
+      padding: 50px;
+    }
+    a {
+      color: black;
+    }
+    a:visited {
+      color: black;
+    }
+  </style>
   <body>
-    <input type="file" id="fileInput" />
-    <script type="module">
-      import init, { process_file } from './pkg/HARwash.js'
+    <h1>HAR-Wash 🛁</h1>
+    <p>
+      Cleans your
+      <a href="https://en.wikipedia.org/wiki/HAR_(file_format)" target="_blank"
+        >HAR file</a
+      >
+      of sensitive data, so you can share it with others.
+    </p>
+    <label id="drop-area">
+      <p>
+        Drop your HAR file here or click to select.
+        <input type="file" id="fileInput" accept=".har" hidden />
+        <br />
+        After upload a new file will be immediately downloaded.
+      </p>
+    </label>
+    <p style="text-align: right">
+      <a href="https://github.com/coreylight/HARwash" target="_blank"
+        >🔗 Source</a
+      >
+    </p>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const dropArea = document.getElementById('drop-area')
+        const fileInput = document.getElementById('fileInput')
 
-      init().then(() => {
-        document
-          .getElementById('fileInput')
-          .addEventListener('change', (event) => {
-            const file = event.target.files[0]
-            if (file) {
-              process_file(file)
-              console.log({ file, ppp: process_file(file) })
+        function uploadFile(file) {
+          const reader = new FileReader()
+          reader.onload = function (event) {
+            const text = event.target.result
+
+            let parsedHAR
+            try {
+              parsedHAR = JSON.parse(text)
+            } catch (e) {
+              alert('Invalid HAR file')
+              return
             }
-          })
+
+            parsedHAR.log.entries.forEach((entry) => {
+              entry.request.headers = entry.request.headers.filter(
+                (header) => header.name.toLowerCase() !== 'authorization'
+              )
+            })
+
+            const newHAR = JSON.stringify(parsedHAR, null, 2)
+
+            const blob = new Blob([newHAR], { type: 'application/json' })
+            const url = window.URL.createObjectURL(blob)
+
+            const a = document.createElement('a')
+            a.style.display = 'none'
+            a.href = url
+            a.download = `${file.name}-clean.har`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+          }
+          reader.readAsText(file)
+        }
+
+        dropArea.addEventListener('dragover', function (e) {
+          e.preventDefault()
+          dropArea.style.border = '2px dashed #000'
+        })
+
+        dropArea.addEventListener('dragleave', function () {
+          dropArea.style.border = '2px solid #ccc'
+        })
+
+        dropArea.addEventListener('drop', function (e) {
+          e.preventDefault()
+          dropArea.style.border = '2px solid #ccc'
+          const file = e.dataTransfer.files[0]
+          if (file) {
+            uploadFile(file)
+          }
+        })
+
+        fileInput.addEventListener('change', function (e) {
+          const file = e.target.files[0]
+          if (file) {
+            uploadFile(file)
+          }
+        })
       })
     </script>
   </body>
